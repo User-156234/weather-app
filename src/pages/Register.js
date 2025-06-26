@@ -103,7 +103,7 @@ const styles = {
     transition: '0.3s ease'
   },
   text: {
-    color:'#',
+    color:'black',
     textAlign: 'center',
     fontSize: '14px'
   },

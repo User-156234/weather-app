@@ -15,7 +15,7 @@ export default function SignIn() {
     const data = await res.json();
     if (data.token) {
       localStorage.setItem('token', data.token);
-      navigate('/');
+      navigate('/home');
     } else {
       alert(data.error);
     }

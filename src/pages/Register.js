@@ -29,6 +29,12 @@ export default function Register() {
       <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" />
       <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" />
       <button onClick={handleRegister}>Register</button>
+      <p>
+        Already have an account?{' '}
+        <span onClick={() => navigate('/signin')} style={{ color: 'blue', cursor: 'pointer' }}>
+          Sign In
+        </span>
+      </p>
     </div>
   );
 }

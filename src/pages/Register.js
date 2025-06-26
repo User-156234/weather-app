@@ -8,7 +8,7 @@ export default function Register() {
   const navigate = useNavigate();
 
   const handleRegister = async () => {
-    const res = await fetch('http://localhost:5000/api/register', {
+    const res = await fetch('https://weather-backend-fd87.onrender.com/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, password })

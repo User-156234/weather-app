@@ -7,34 +7,90 @@ export default function Navbar() {
   const [showDropdown, setShowDropdown] = useState(false);
 
   return (
-    <nav style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem' }}>
-      <div>
-        <Link to="/home">Home</Link> | <Link to="/search">Search</Link> | <Link to="/about">About</Link> | <Link to="/contact">Contact</Link>
+    <nav style={styles.navbar}>
+      <div style={styles.links}>
+        <Link to="/home" style={styles.link}>Home</Link>
+        <Link to="/search" style={styles.link}>Search</Link>
+        <Link to="/about" style={styles.link}>About</Link>
+        <Link to="/contact" style={styles.link}>Contact</Link>
       </div>
-      {user ? (
-        <div style={{ position: 'relative' }}>
-          <span
-            onClick={() => setShowDropdown(!showDropdown)}
-            style={{ cursor: 'pointer' }}
-          >
-            {user.name} ⬇
-          </span>
-          {showDropdown && (
-            <div style={{
-              position: 'absolute',
-              right: 0,
-              top: '100%',
-              background: '#eee',
-              padding: '0.5rem',
-              borderRadius: '5px'
-            }}>
-              <div onClick={logout} style={{ cursor: 'pointer' }}>Logout</div>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Link to="/signin">Sign In</Link>
-      )}
+      <div style={styles.userSection}>
+        {user ? (
+          <div style={{ position: 'relative' }}>
+            <span
+              onClick={() => setShowDropdown(!showDropdown)}
+              style={styles.user}
+            >
+              {user.name} ⬇
+            </span>
+            {showDropdown && (
+              <div style={styles.dropdown}>
+                <div onClick={logout} style={styles.dropdownItem}>Logout</div>
+              </div>
+            )}
+          </div>
+        ) : (
+          <Link to="/signin" style={styles.link}>Sign In</Link>
+        )}
+      </div>
     </nav>
   );
 }
+
+const styles = {
+  navbar: {
+    background: 'rgba(0, 0, 0, 0.4)',
+    backdropFilter: 'blur(10px)',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: '1rem 2rem',
+    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+    color: '#f0f0f0',
+    position: 'sticky',
+    top: 0,
+    zIndex: 10,
+  },
+  links: {
+    display: 'flex',
+    gap: '1.5rem',
+  },
+  link: {
+    color: '#f0f0f0',
+    textDecoration: 'none',
+    fontWeight: '500',
+    transition: '0.3s',
+    padding: '0.4rem',
+    borderRadius: '6px',
+  },
+  userSection: {
+    color: '#f0f0f0',
+  },
+  user: {
+    cursor: 'pointer',
+    fontWeight: 'bold',
+    padding: '0.4rem 0.6rem',
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: '8px',
+    transition: '0.3s ease',
+  },
+  dropdown: {
+    position: 'absolute',
+    top: '120%',
+    right: 0,
+    background: 'rgba(255, 255, 255, 0.98)',
+    borderRadius: '10px',
+    boxShadow: '0 8px 20px rgba(0,0,0,0.2)',
+    overflow: 'hidden',
+    zIndex: 20,
+  },
+  dropdownItem: {
+    padding: '0.75rem 1.2rem',
+    cursor: 'pointer',
+    color: '#222',
+    fontWeight: '500',
+    transition: '0.2s',
+    whiteSpace: 'nowrap',
+  }
+};
+

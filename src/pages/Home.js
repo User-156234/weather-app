@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react';
 import WeatherCard from '../components/WeatherCard';
+import Forecast from '../components/Forecast';
 
 export default function Home() {
   const [weather, setWeather] = useState(null);
+  const [forecast, setForecast] = useState([]);
   const [error, setError] = useState('');
   const [bgStyle, setBgStyle] = useState(styles.defaultBg);
 
@@ -13,6 +15,7 @@ export default function Home() {
         const lon = position.coords.longitude;
 
         try {
+          // Fetch current weather
           const response = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
           );
@@ -20,16 +23,20 @@ export default function Home() {
           const data = await response.json();
           setWeather(data);
 
-          // Set dynamic background based on temperature
-          const temp = data.main.temp;
-          if (temp < 10) {
-            setBgStyle(styles.coldBg);
-          } else if (temp >= 10 && temp <= 25) {
-            setBgStyle(styles.pleasantBg);
-          } else {
-            setBgStyle(styles.hotBg);
-          }
+          // Background based on temperature
+          setBgStyle(styles.defaultBg);
 
+          // Fetch forecast
+          const forecastResponse = await fetch(
+            `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
+          );
+          if (!forecastResponse.ok) throw new Error("Failed to fetch forecast");
+          const forecastData = await forecastResponse.json();
+
+          const dailyForecasts = forecastData.list.filter(entry =>
+            entry.dt_txt.includes("12:00:00")
+          );
+          setForecast(dailyForecasts);
         } catch (err) {
           setError('Error fetching weather: ' + err.message);
         }
@@ -40,13 +47,22 @@ export default function Home() {
 
   return (
     <div style={{ ...styles.base, ...bgStyle }}>
-      <div style={styles.card}>
-        <h1 style={styles.title}>Current Weather</h1>
-        {error && <p style={styles.error}>{error}</p>}
-        {weather ? (
-          <WeatherCard data={weather} />
-        ) : (
-          !error && <p style={styles.loading}>Loading...</p>
+      <div style={styles.wrapper}>
+        <div style={styles.card}>
+          <h1 style={styles.title}>Current Weather</h1>
+          {error && <p style={styles.error}>{error}</p>}
+          {weather ? (
+            <WeatherCard data={weather} />
+          ) : (
+            !error && <p style={styles.loading}>Loading current weather...</p>
+          )}
+        </div>
+
+        {forecast.length > 0 && (
+          <div style={styles.forecastSection}>
+            <h2 style={styles.subtitle}>Weekly Forecast</h2>
+            <Forecast data={forecast} />
+          </div>
         )}
       </div>
     </div>
@@ -56,47 +72,57 @@ export default function Home() {
 const styles = {
   base: {
     minHeight: '100vh',
+    padding: '2rem',
     display: 'flex',
     justifyContent: 'center',
-    alignItems: 'center',
-    padding: '2rem',
+    alignItems: 'flex-start',
     transition: 'background 1s ease',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
   },
-  coldBg: {
-    background: 'linear-gradient(135deg, #89f7fe, #66a6ff)'  // light icy blue
-  },
-  pleasantBg: {
-    background: 'linear-gradient(135deg, #fceabb, #f8b500)'  // yellowish warm
-  },
-  hotBg: {
-    background: 'linear-gradient(135deg, #ff6a00, #ee0979)'  // orange-red
-  },
+  
   defaultBg: {
-    background: 'linear-gradient(135deg, #c9d6ff, #e2e2e2)'
+    background: '#1E1E1E'
+  },
+  wrapper: {
+    width: '100%',
+    maxWidth: '960px',
+    backdropFilter: 'blur(6px)',
   },
   card: {
-    background: 'rgba(255, 255, 255, 0.15)',
-    backdropFilter: 'blur(14px)',
+    background: 'rgba(255, 255, 255, 0.2)',
     borderRadius: '20px',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.15)',
+    boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
     padding: '2rem',
-    width: '100%',
-    maxWidth: '480px',
     textAlign: 'center',
-    color: '#333',
+    color: '#fff',
+    marginBottom: '2rem',
+  },
+  forecastSection: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: '20px',
+    padding: '1.5rem',
+    color: '#fff',
+    boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
+    backdropFilter: 'blur(10px)',
   },
   title: {
-    color:'black',
-    fontSize: '26px',
+    fontSize: '32px',
     marginBottom: '1rem',
-    fontWeight: 'bold'
+    fontWeight: 'bold',
+  },
+  subtitle: {
+    fontSize: '24px',
+    marginBottom: '1rem',
+    fontWeight: '500',
+    color: '#f0f0f0'
   },
   error: {
-    color: 'red',
+    color: '#ffb3b3',
     fontWeight: 'bold',
   },
   loading: {
     fontStyle: 'italic',
-    color: '#666',
+    color: '#eee',
   }
 };

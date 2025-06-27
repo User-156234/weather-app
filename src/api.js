@@ -1,21 +1,43 @@
 import axios from 'axios';
 
 const API_KEY = process.env.REACT_APP_WEATHER_API_KEY;
-const BASE_URL = "https://api.openweathermap.org/data/2.5";
+const GEO_URL = "https://api.openweathermap.org/geo/1.0/direct";
+const WEATHER_URL = "https://api.openweathermap.org/data/2.5/weather";
 
-// Accept a city or village name
+// Accepts a city, village, or any location name
 export const getCurrentWeather = async (locationName) => {
   try {
-    const response = await axios.get(`${BASE_URL}/weather`, {
+    // Step 1: Resolve location name to coordinates (lat, lon)
+    const geoRes = await axios.get(GEO_URL, {
       params: {
-        q: locationName, // <--- this must be a valid city/village name
+        q: locationName,
+        limit: 1,
+        appid: API_KEY,
+      },
+    });
+
+    if (!geoRes.data || geoRes.data.length === 0) {
+      throw new Error("Location not found");
+    }
+
+    const { lat, lon } = geoRes.data[0];
+
+    // Step 2: Fetch weather using coordinates
+    const weatherRes = await axios.get(WEATHER_URL, {
+      params: {
+        lat,
+        lon,
         units: 'metric',
         appid: API_KEY,
       },
     });
-    return response.data;
+
+    return weatherRes.data;
   } catch (error) {
-    console.error("getCurrentWeather error:", error);
+    console.error("getCurrentWeather error:", error.message);
     throw error;
   }
 };
+
+
+

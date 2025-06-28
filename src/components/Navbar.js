@@ -64,6 +64,7 @@ const styles = {
     transition: '0.3s',
     padding: '0.4rem',
     borderRadius: '6px',
+    
   },
   userSection: {
     color: '#f0f0f0',

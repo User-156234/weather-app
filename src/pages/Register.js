@@ -1,13 +1,40 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useContext, useEffect } from 'react';
+import { AuthContext } from '../context/AuthContext';
+
+
+
 
 export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
+useEffect(() => {
+  if (user) navigate('/home');
+}, [user,navigate]);
 
-  const handleRegister = async () => {
+const handleRegister = async () => {
+  // Basic validation
+  if (!name.trim()) {
+    alert("Please enter your name");
+    return;
+  }
+
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    alert("Please enter a valid email");
+    return;
+  }
+
+  if (password.length < 6) {
+    alert("Password must be at least 6 characters");
+    return;
+  }
+
+  try {
     const res = await fetch('https://weather-backend-fd87.onrender.com/api/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -20,7 +47,11 @@ export default function Register() {
     } else {
       alert(data.error);
     }
-  };
+  } catch (err) {
+    alert("Registration failed");
+  }
+};
+
 
   return (
     <div style={styles.background}>
@@ -58,7 +89,7 @@ export default function Register() {
 const styles = {
   background: {
     minHeight: '100vh',
-    background: 'linear-gradient(-45deg, #6b8eff, #4ef7a7, #fcd34f)',
+    background: '#1E1E1E',
     backgroundSize: 'auto',
     animation: 'gradientBG 15s ease infinite',
     display: 'flex',
@@ -79,7 +110,7 @@ const styles = {
     gap: '1rem'
   },
   title: {
-    color:'black',
+    color:'white',
     textAlign: 'center',
     fontSize: '26px',
     letterSpacing: '1px',
@@ -103,12 +134,14 @@ const styles = {
     transition: '0.3s ease'
   },
   text: {
-    color:'black',
+    color: 'white',
     textAlign: 'center',
-    fontSize: '14px'
+    fontSize: '18px',
+    fontFamily: 'Times New Roman, Times, serif',
   },
+  
   link: {
-    color: 'blue',
+    color: '#6b8efb',
     textDecoration: 'underline',
     cursor: 'pointer',
     fontWeight: 'bold'

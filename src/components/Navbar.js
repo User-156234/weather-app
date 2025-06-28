@@ -17,11 +17,13 @@ export default function Navbar() {
       <div style={styles.userSection}>
         {user ? (
           <div style={{ position: 'relative' }}>
-            <span
-              onClick={() => setShowDropdown(!showDropdown)}
-              style={styles.user}
-            >
-              {user.name} ⬇
+            <span onClick={() => setShowDropdown(!showDropdown)} style={styles.user}>
+              <img
+                src={`https://ui-avatars.com/api/?name=${user.name}&background=random&rounded=true`}
+                alt="avatar"
+                style={styles.avatar}
+              />
+              <span style={{ marginLeft: '8px' }}>{user.name} ⬇</span>
             </span>
             {showDropdown && (
               <div style={styles.dropdown}>
@@ -73,6 +75,14 @@ const styles = {
     backgroundColor: 'rgba(255,255,255,0.1)',
     borderRadius: '8px',
     transition: '0.3s ease',
+    display: 'flex',
+    alignItems: 'center',
+  },
+  avatar: {
+    width: '30px',
+    height: '30px',
+    borderRadius: '50%',
+    objectFit: 'cover',
   },
   dropdown: {
     position: 'absolute',
@@ -93,4 +103,3 @@ const styles = {
     whiteSpace: 'nowrap',
   }
 };
-

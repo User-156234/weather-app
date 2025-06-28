@@ -1,10 +1,16 @@
-import { useState } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 
 export default function SignIn() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const { setUser, user } = useContext(AuthContext);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user) navigate('/home');
+  }, [user,navigate]);
 
   const handleLogin = async () => {
     const res = await fetch('https://weather-backend-fd87.onrender.com/api/login', {
@@ -15,6 +21,8 @@ export default function SignIn() {
     const data = await res.json();
     if (data.token) {
       localStorage.setItem('token', data.token);
+      const decoded = JSON.parse(atob(data.token.split('.')[1]));
+      setUser({ name: decoded.name });
       navigate('/home');
     } else {
       alert(data.error);
@@ -25,22 +33,11 @@ export default function SignIn() {
     <div style={styles.background}>
       <div style={styles.glass}>
         <h2 style={styles.title}>Sign In</h2>
-        <input
-          value={email}
-          onChange={e => setEmail(e.target.value)}
-          placeholder="Email"
-          style={styles.input}
-        />
-        <input
-          type="password"
-          value={password}
-          onChange={e => setPassword(e.target.value)}
-          placeholder="Password"
-          style={styles.input}
-        />
+        <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Email" style={styles.input} />
+        <input type="password" value={password} onChange={e => setPassword(e.target.value)} placeholder="Password" style={styles.input} />
         <button onClick={handleLogin} style={styles.button}>Login</button>
         <p style={styles.text}>
-          Don't have an account?{' '}
+          Do not have an account?{' '}
           <span onClick={() => navigate('/')} style={styles.link}>Register</span>
         </p>
       </div>
@@ -51,12 +48,23 @@ export default function SignIn() {
 const styles = {
   background: {
     minHeight: '100vh',
-    background: 'linear-gradient(-45deg, #6b8eff, #4ef7a7, #fcd34f)',
+    background: '#1E1E1E',
     backgroundSize: '600% 600%',
-    animation: 'gradientBG 15s ease infinite',
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  text: {
+    color: 'white',
+    textAlign: 'center',
+    fontSize: '18px',
+    fontFamily: 'Times New Roman, Times, serif',
+  },
+  link: {
+    color: '#6b8efb',
+    textDecoration: 'underline',
+    cursor: 'pointer',
+    fontWeight: 'bold'
   },
   glass: {
     width: '360px',
@@ -72,10 +80,9 @@ const styles = {
     gap: '1rem'
   },
   title: {
-    color:'black',
+    color: 'white',
     textAlign: 'center',
     fontSize: '26px',
-    letterSpacing: '1px',
     fontWeight: 'bold'
   },
   input: {
@@ -94,16 +101,5 @@ const styles = {
     color: 'black',
     cursor: 'pointer',
     transition: '0.3s ease'
-  },
-  text: {
-    color:'black',
-    textAlign: 'center',
-    fontSize: '14px'
-  },
-  link: {
-    color: 'blue',
-    textDecoration: 'underline',
-    cursor: 'pointer',
-    fontWeight: 'bold'
   }
 };

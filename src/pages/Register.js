@@ -29,8 +29,9 @@ const handleRegister = async () => {
     return;
   }
 
-  if (password.length < 6) {
-    alert("Password must be at least 6 characters");
+  const passwordRegex = /^(?=.*[A-Z])(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]{8,}$/;
+  if (!passwordRegex.test(password)) {
+    alert("Password must be at least 8 characters long, include one uppercase letter and one special character");
     return;
   }
 

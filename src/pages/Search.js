@@ -1,152 +1,108 @@
-import { useState, useEffect } from 'react';
+// src/pages/Search.js
+import { useState } from 'react';
 import { getCurrentWeather } from '../api';
+import SearchComponent from '../components/SearchComponent';
+// Make sure these are imported if they are not passed through WeatherResults
 import WeatherCard from '../components/WeatherCard';
 import Forecast from '../components/Forecast';
 import HourlyForecast from '../components/HourlyForecast';
 
+
 export default function Search() {
-  const [query, setQuery] = useState('');
-  const [suggestions, setSuggestions] = useState([]);
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState([]);
   const [hourlyForecast, setHourlyForecast] = useState([]);
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  // 🌐 Fetch live location suggestions
-  useEffect(() => {
-    if (!query) return;
-    const fetchSuggestions = async () => {
-      const res = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
-      );
-      const data = await res.json();
-      setSuggestions(data);
-    };
-
-    const debounce = setTimeout(fetchSuggestions, 300);
-    return () => clearTimeout(debounce);
-  }, [query]);
-
-  const handleSearch = async (q) => {
-    const term = typeof q === 'string' ? q : query;
-    if (!term.trim()) {
-      alert('Please enter a location');
-      return;
-    }
-
+  const handleSearch = async (term) => {
+    setIsLoading(true);
+    setError('');
+    setWeather(null); // Clear previous results
+    
     try {
-      const data = await getCurrentWeather(term);
-      data.name = term;
-      setWeather(data);
+      const currentWeatherData = await getCurrentWeather(term);
+      currentWeatherData.name = term.split(',')[0];
+      setWeather(currentWeatherData);
 
-      const lat = data.coord.lat;
-      const lon = data.coord.lon;
-
+      const { lat, lon } = currentWeatherData.coord;
       const forecastRes = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
       );
-
       if (!forecastRes.ok) throw new Error('Forecast fetch failed');
       const forecastData = await forecastRes.json();
-
-      // 📅 Daily Forecast (12 PM)
-      const daily = forecastData.list.filter(item =>
-        item.dt_txt.includes('12:00:00')
-      );
+      
+      const daily = forecastData.list.filter(item => item.dt_txt.includes('12:00:00'));
       setForecast(daily);
 
-      // ⏱ Hourly Forecast (today only)
       const today = new Date().toISOString().split('T')[0];
-      const hourly = forecastData.list.filter(entry =>
-        entry.dt_txt.startsWith(today)
-      );
+      const hourly = forecastData.list.filter(entry => entry.dt_txt.startsWith(today));
       setHourlyForecast(hourly);
 
-      setError('');
-      setSuggestions([]);
     } catch (err) {
       setError('Location not found. Please try again.');
       setWeather(null);
       setForecast([]);
       setHourlyForecast([]);
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const handleKeyPress = (e) => {
-    if (e.key === 'Enter') handleSearch();
   };
 
   return (
     <div style={styles.container}>
+      {/* CARD 1: Search Input */}
       <div style={styles.card}>
-        <h2 style={styles.heading}>Search Weather</h2>
-
-        <div style={styles.searchBox}>
-          <input
-            type="text"
-            placeholder="Enter city or village"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            onKeyDown={handleKeyPress}
-            style={styles.input}
-          />
-          <button onClick={() => handleSearch()} style={styles.button}>Search</button>
-        </div>
-
-        {/* 🔍 Suggestions */}
-        {suggestions.length > 0 && (
-          <ul style={styles.suggestionList}>
-            {suggestions.map((sug, i) => (
-              <li
-                key={i}
-                style={styles.suggestionItem}
-                onClick={() => {
-                  setQuery(`${sug.name}, ${sug.country}`);
-                  handleSearch(`${sug.name}, ${sug.country}`);
-                }}
-              >
-                {sug.name}, {sug.state ? `${sug.state}, ` : ''}{sug.country}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {error && <p style={styles.error}>{error}</p>}
-
-        {weather && (
-          <div style={{ marginTop: '2rem' }}>
-            <WeatherCard data={weather} />
-          </div>
-        )}
-
-        {hourlyForecast.length > 0 && (
-          <div style={styles.forecastSection}>
-            <h3 style={styles.sectionTitle}>Today’s Hourly Forecast</h3>
-            <div style={styles.scrollContainer}>
-              <HourlyForecast data={hourlyForecast} />
-            </div>
-          </div>
-        )}
-
-        {forecast.length > 0 && (
-          <div style={styles.forecastSection}>
-            <h3 style={styles.sectionTitle}>Weekly Forecast</h3>
-            <Forecast data={forecast} />
-          </div>
-        )}
+        <SearchComponent onSearch={handleSearch} styles={styles} />
       </div>
+
+      {/* Loading state message */}
+      {isLoading && <p style={{ color: 'white', margin: '2rem 0' }}>Loading weather data...</p>}
+      
+      {/* Error message card */}
+      {error && !isLoading && (
+        <div style={{ ...styles.card, marginTop: '2rem', background: 'rgba(255, 82, 82, 0.2)' }}>
+          <p style={styles.error}>{error}</p>
+        </div>
+      )}
+
+      {/* CARD 2: Weather Results (appears only when data is available) */}
+      {weather && !isLoading && (
+        <div style={{ ...styles.card, marginTop: '2rem' }}>
+          {/* You can use the WeatherResults component or place the items directly */}
+          <WeatherCard data={weather} />
+
+          {hourlyForecast.length > 0 && (
+            <div style={styles.forecastSection}>
+              <h3 style={styles.sectionTitle}>Today’s Hourly Forecast</h3>
+              <div style={styles.scrollContainer}>
+                <HourlyForecast data={hourlyForecast} />
+              </div>
+            </div>
+          )}
+
+          {forecast.length > 0 && (
+            <div style={styles.forecastSection}>
+              <h3 style={styles.sectionTitle}>Weekly Forecast</h3>
+              <Forecast data={forecast} />
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }
 
+// Styles object with an updated container style
 const styles = {
   container: {
     minHeight: '100vh',
     background: '#1E1E1E',
     display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'flex-start',
+    flexDirection: 'column', // Stack cards vertically
+    alignItems: 'center',    // Center cards horizontally
     padding: '4rem 1rem',
+    gap: '0rem' // Reset gap, marginTop will handle spacing
   },
   card: {
     background: 'rgba(255, 255, 255, 0.1)',
@@ -160,6 +116,7 @@ const styles = {
     textAlign: 'center',
     border: '1px solid rgba(255,255,255,0.2)',
   },
+  // ... all other styles from your original file remain the same
   heading: {
     fontSize: '30px',
     marginBottom: '2rem',
@@ -221,7 +178,7 @@ const styles = {
   },
   error: {
     color: '#ffaaaa',
-    marginTop: '1rem',
+    // No margin needed if it's the only item in the card
     fontWeight: 'bold',
   },
   forecastSection: {

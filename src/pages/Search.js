@@ -1,46 +1,74 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { getCurrentWeather } from '../api';
 import WeatherCard from '../components/WeatherCard';
 import Forecast from '../components/Forecast';
+import HourlyForecast from '../components/HourlyForecast';
 
 export default function Search() {
   const [query, setQuery] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState([]);
+  const [hourlyForecast, setHourlyForecast] = useState([]);
   const [error, setError] = useState('');
 
-  const handleSearch = async () => {
-    if (!query.trim()) {
-      alert("Please enter a location");
+  // 🌐 Fetch live location suggestions
+  useEffect(() => {
+    if (!query) return;
+    const fetchSuggestions = async () => {
+      const res = await fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${query}&limit=5&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
+      );
+      const data = await res.json();
+      setSuggestions(data);
+    };
+
+    const debounce = setTimeout(fetchSuggestions, 300);
+    return () => clearTimeout(debounce);
+  }, [query]);
+
+  const handleSearch = async (q) => {
+    const term = typeof q === 'string' ? q : query;
+    if (!term.trim()) {
+      alert('Please enter a location');
       return;
     }
 
     try {
-      const data = await getCurrentWeather(query);
-      data.name=query
+      const data = await getCurrentWeather(term);
+      data.name = term;
       setWeather(data);
 
-      // Fetch forecast based on coordinates from current weather
       const lat = data.coord.lat;
       const lon = data.coord.lon;
+
       const forecastRes = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
       );
 
-      if (!forecastRes.ok) throw new Error("Forecast fetch failed");
+      if (!forecastRes.ok) throw new Error('Forecast fetch failed');
       const forecastData = await forecastRes.json();
 
-      // Filter to get daily forecast (12:00 PM)
-      const dailyForecasts = forecastData.list.filter(item =>
-        item.dt_txt.includes("12:00:00")
+      // 📅 Daily Forecast (12 PM)
+      const daily = forecastData.list.filter(item =>
+        item.dt_txt.includes('12:00:00')
       );
+      setForecast(daily);
 
-      setForecast(dailyForecasts);
+      // ⏱ Hourly Forecast (today only)
+      const today = new Date().toISOString().split('T')[0];
+      const hourly = forecastData.list.filter(entry =>
+        entry.dt_txt.startsWith(today)
+      );
+      setHourlyForecast(hourly);
+
       setError('');
+      setSuggestions([]);
     } catch (err) {
-      setError("Location not found. Please try again.");
+      setError('Location not found. Please try again.');
       setWeather(null);
       setForecast([]);
+      setHourlyForecast([]);
     }
   };
 
@@ -52,6 +80,7 @@ export default function Search() {
     <div style={styles.container}>
       <div style={styles.card}>
         <h2 style={styles.heading}>Search Weather</h2>
+
         <div style={styles.searchBox}>
           <input
             type="text"
@@ -61,8 +90,27 @@ export default function Search() {
             onKeyDown={handleKeyPress}
             style={styles.input}
           />
-          <button onClick={handleSearch} style={styles.button}>Search</button>
+          <button onClick={() => handleSearch()} style={styles.button}>Search</button>
         </div>
+
+        {/* 🔍 Suggestions */}
+        {suggestions.length > 0 && (
+          <ul style={styles.suggestionList}>
+            {suggestions.map((sug, i) => (
+              <li
+                key={i}
+                style={styles.suggestionItem}
+                onClick={() => {
+                  setQuery(`${sug.name}, ${sug.country}`);
+                  handleSearch(`${sug.name}, ${sug.country}`);
+                }}
+              >
+                {sug.name}, {sug.state ? `${sug.state}, ` : ''}{sug.country}
+              </li>
+            ))}
+          </ul>
+        )}
+
         {error && <p style={styles.error}>{error}</p>}
 
         {weather && (
@@ -71,8 +119,18 @@ export default function Search() {
           </div>
         )}
 
+        {hourlyForecast.length > 0 && (
+          <div style={styles.forecastSection}>
+            <h3 style={styles.sectionTitle}>Today’s Hourly Forecast</h3>
+            <div style={styles.scrollContainer}>
+              <HourlyForecast data={hourlyForecast} />
+            </div>
+          </div>
+        )}
+
         {forecast.length > 0 && (
           <div style={styles.forecastSection}>
+            <h3 style={styles.sectionTitle}>Weekly Forecast</h3>
             <Forecast data={forecast} />
           </div>
         )}
@@ -96,7 +154,7 @@ const styles = {
     borderRadius: '20px',
     padding: '2.5rem 2rem',
     width: '100%',
-    maxWidth: '600px',
+    maxWidth: '680px',
     boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
     color: '#ffffff',
     textAlign: 'center',
@@ -109,6 +167,13 @@ const styles = {
     color: '#ffffff',
     textShadow: '2px 2px 6px rgba(0,0,0,0.4)',
     letterSpacing: '1px',
+  },
+  sectionTitle: {
+    fontSize: '20px',
+    fontWeight: '600',
+    marginBottom: '1rem',
+    textAlign: 'left',
+    color: '#f0f0f0',
   },
   searchBox: {
     display: 'flex',
@@ -139,6 +204,21 @@ const styles = {
     transition: '0.3s ease',
     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
   },
+  suggestionList: {
+    listStyle: 'none',
+    padding: 0,
+    margin: '0 0 1rem',
+    background: '#2a2a2a',
+    borderRadius: '10px',
+    overflow: 'hidden',
+    textAlign: 'left',
+  },
+  suggestionItem: {
+    padding: '10px 14px',
+    cursor: 'pointer',
+    borderBottom: '1px solid rgba(255,255,255,0.05)',
+    color: '#eee',
+  },
   error: {
     color: '#ffaaaa',
     marginTop: '1rem',
@@ -152,11 +232,14 @@ const styles = {
     boxShadow: '0 6px 20px rgba(0,0,0,0.25)',
     color: 'white',
     backdropFilter: 'blur(12px)',
+    textAlign: 'left',
   },
-  subtitle: {
-    fontSize: '22px',
-    marginBottom: '1rem',
-    fontWeight: '600',
-    textShadow: '1px 1px 2px rgba(0,0,0,0.3)',
+  scrollContainer: {
+    display: 'flex',
+    overflowX: 'auto',
+    gap: '1rem',
+    paddingBottom: '0.5rem',
+    scrollbarColor: '#666 #2a2a2a',
+    scrollbarWidth: 'thin',
   },
 };

@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react';
 import WeatherCard from '../components/WeatherCard';
 import Forecast from '../components/Forecast';
+import HourlyForecast from '../components/HourlyForecast'; // ✅ NEW
 
 export default function Home() {
   const [weather, setWeather] = useState(null);
   const [forecast, setForecast] = useState([]);
+  const [hourlyForecast, setHourlyForecast] = useState([]); // ✅ NEW
   const [error, setError] = useState('');
   const [bgStyle, setBgStyle] = useState(styles.defaultBg);
 
@@ -15,7 +17,7 @@ export default function Home() {
         const lon = position.coords.longitude;
 
         try {
-          // Fetch current weather
+          // Current weather
           const response = await fetch(
             `https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
           );
@@ -23,20 +25,28 @@ export default function Home() {
           const data = await response.json();
           setWeather(data);
 
-          // Background based on temperature
-          setBgStyle(styles.defaultBg);
-
-          // Fetch forecast
+          // Forecast (5-day + hourly)
           const forecastResponse = await fetch(
             `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&units=metric&appid=${process.env.REACT_APP_WEATHER_API_KEY}`
           );
           if (!forecastResponse.ok) throw new Error("Failed to fetch forecast");
           const forecastData = await forecastResponse.json();
 
+          // Daily forecast (midday data)
           const dailyForecasts = forecastData.list.filter(entry =>
             entry.dt_txt.includes("12:00:00")
           );
           setForecast(dailyForecasts);
+
+          // Hourly forecast (for today)
+          const today = new Date().toISOString().split('T')[0];
+          const todayHourly = forecastData.list.filter(entry =>
+            entry.dt_txt.startsWith(today)
+          );
+          setHourlyForecast(todayHourly);
+
+          // Background logic (optional)
+          setBgStyle(styles.defaultBg);
         } catch (err) {
           setError('Error fetching weather: ' + err.message);
         }
@@ -57,6 +67,12 @@ export default function Home() {
             !error && <p style={styles.loading}>Loading current weather...</p>
           )}
         </div>
+
+        {hourlyForecast.length > 0 && (
+          <div style={styles.forecastSection}>
+            <HourlyForecast data={hourlyForecast} />
+          </div>
+        )}
 
         {forecast.length > 0 && (
           <div style={styles.forecastSection}>
@@ -80,9 +96,8 @@ const styles = {
     backgroundSize: 'cover',
     backgroundPosition: 'center',
   },
-  
   defaultBg: {
-    background: '#1E1E1E'
+    background: '#1E1E1E',
   },
   wrapper: {
     width: '100%',
@@ -105,6 +120,7 @@ const styles = {
     color: '#fff',
     boxShadow: '0 6px 16px rgba(0,0,0,0.3)',
     backdropFilter: 'blur(10px)',
+    marginTop: '2rem',
   },
   title: {
     fontSize: '32px',
@@ -115,7 +131,7 @@ const styles = {
     fontSize: '24px',
     marginBottom: '1rem',
     fontWeight: '500',
-    color: '#f0f0f0'
+    color: '#f0f0f0',
   },
   error: {
     color: '#ffb3b3',
@@ -124,5 +140,5 @@ const styles = {
   loading: {
     fontStyle: 'italic',
     color: '#eee',
-  }
+  },
 };
